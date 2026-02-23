@@ -2,16 +2,15 @@
 
 A virtual playervault for luanti
 
-- `/pv` opens your own vault
-- `/pv <player>` opens another player's vault
+# commands
+
+- `/pv` shows usage and your vault count
+- `/pv <number>` opens your own vault
+- `/pv <number> <player>` opens another player's vault (admin only)
 - works for checking offline users
-
-## Commands
-
-- `/pv`
-- `/pv <player>`
 
 ## Privileges
 
 - `playervaults_admin`: can open/edit other players' vaults
 - `server`: also accepted as admin access
+- `playervault.amount.<number>`: grants access up to that vault count (highest amount wins)
