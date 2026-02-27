@@ -21,7 +21,6 @@ local PV = {
     detached_ready = {},
 }
 
-dofile(MODPATH .. "/lib/legacy.lua")(PV)
 dofile(MODPATH .. "/lib/gui.lua")(PV)
 dofile(MODPATH .. "/lib/core.lua")(PV)
 dofile(MODPATH .. "/lib/commands.lua")(PV)
