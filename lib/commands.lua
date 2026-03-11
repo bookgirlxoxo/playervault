@@ -26,12 +26,14 @@ return function(PV)
                 args[#args + 1] = token
             end
             if #args < 1 or #args > 2 then
-                return PV.chat_error("Usage: /pv <number> [player]")
+                local max_count = PV.get_max_vault_count(name)
+                return PV.chat_error("Usage: /pv <number>, you have " .. tostring(max_count) .. " of vaults!")
             end
 
             local vault_index = tonumber(args[1])
             if type(vault_index) ~= "number" or vault_index < 1 or vault_index ~= math.floor(vault_index) then
-                return PV.chat_error("Vault number must be a positive integer.")
+                local max_count = PV.get_max_vault_count(name)
+                return PV.chat_error("Usage: /pv <number>, you have " .. tostring(max_count) .. " of vaults!")
             end
 
             local target = (#args == 2) and args[2] or name

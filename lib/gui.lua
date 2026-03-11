@@ -5,19 +5,28 @@ return function(PV)
             title = "Displaying " .. owner .. "'s vault  #" .. tostring(vault_index) .. "/" .. tostring(max_count)
         end
 
-        return table.concat({
+        local fs = {
             "formspec_version[4]",
-            "size[12.0,10.6]",
-            "bgcolor[#0f0f15dd;true]",
-            "listcolors[#00000099;#3a3a3a;#111111;#000000;#ffffff]",
-            "box[0.2,0.2;11.6,10.2;#1a1a24cc]",
-            "label[0.8,0.55;" .. minetest.formspec_escape(title) .. "]",
-            "button_exit[10.4,0.4;1.0,0.7;close;Close]",
+            "size[12.0,11.2]",
+            "label[0.5,0.55;" .. minetest.formspec_escape(title) .. "]",
+            "button_exit[10.55,0.30;1.0,0.7;close;Close]",
             "list[detached:playervaults_" .. minetest.formspec_escape(owner) .. "_" .. tostring(vault_index) .. ";main;" .. PV.VAULT_X .. "," .. PV.VAULT_Y .. ";" .. PV.VAULT_W .. "," .. PV.VAULT_ROWS_TOTAL .. ";]",
-            "label[1.35,4.8;Inventory]",
-            "list[current_player;main;" .. PV.INV_X .. "," .. PV.INV_Y .. ";8,4;]",
+            "label[1.35,5.55;Inventory]",
+            "list[current_player;main;1.0,6.0;8,4;]",
             "listring[]",
-        })
+        }
+
+        if max_count > 1 then
+            if vault_index > 1 then
+                fs[#fs + 1] = "button[0.5,4.6;1.3,0.6;pv_vault_prev;< Prev]"
+            end
+            if vault_index < max_count then
+                local next_x = (vault_index > 1) and 2.0 or 0.5
+                fs[#fs + 1] = string.format("button[%0.1f,4.6;1.3,0.6;pv_vault_next;Next >]", next_x)
+            end
+        end
+
+        return table.concat(fs)
     end
 
     minetest.register_on_player_receive_fields(function(player, formname, fields)
@@ -28,6 +37,21 @@ return function(PV)
         local session = PV.open_sessions[viewer]
         if not session then
             return false
+        end
+
+        if fields.pv_vault_prev then
+            local ok, err = PV.open_vault(viewer, session.owner, session.index - 1)
+            if not ok and err ~= "" then
+                minetest.chat_send_player(viewer, err)
+            end
+            return true
+        end
+        if fields.pv_vault_next then
+            local ok, err = PV.open_vault(viewer, session.owner, session.index + 1)
+            if not ok and err ~= "" then
+                minetest.chat_send_player(viewer, err)
+            end
+            return true
         end
 
         if fields.quit or fields.close then

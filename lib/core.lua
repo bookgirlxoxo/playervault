@@ -1,9 +1,14 @@
 return function(PV)
-    local function security()
-        return prisontest_server
-            and prisontest_server.op
-            and prisontest_server.op.security
-            or nil
+    local OPEN_SOUND = "default_chest_open"
+
+    local function play_open_sound(player_name)
+        if not player_name or player_name == "" then
+            return
+        end
+        minetest.sound_play(OPEN_SOUND, {
+            to_player = player_name,
+            gain = 0.35,
+        })
     end
 
     function PV.is_admin(name)
@@ -98,6 +103,31 @@ return function(PV)
         return PV.can_access(owner, viewer)
     end
 
+    function PV.secure_player_main(player)
+        if not player or not player:is_player() then
+            return
+        end
+        local inv = player:get_inventory()
+        if not inv then
+            return
+        end
+        local list = inv:get_list("main") or {}
+        local changed = false
+        for i, stack in ipairs(list) do
+            if not stack:is_empty() then
+                local max = stack:get_stack_max()
+                if stack:get_count() > max then
+                    stack:set_count(max)
+                    inv:set_stack("main", i, stack)
+                    changed = true
+                end
+            end
+        end
+        if changed then
+            player:set_wielded_item(inv:get_stack("main", player:get_wield_index()))
+        end
+    end
+
     function PV.save_vault(owner, vault_index, inv)
         local list = inv:get_list("main") or {}
         local rows = {}
@@ -112,46 +142,6 @@ return function(PV)
             rows[i] = stack:to_string()
         end
         PV.storage:set_string(PV.vault_key(owner, vault_index), minetest.serialize(rows))
-    end
-
-    function PV.canonicalize_special_stacks(inv)
-        local sec = security()
-        if not sec or type(sec.ensure_stack_meta) ~= "function" then
-            return
-        end
-        local list = inv:get_list("main") or {}
-        for i = 1, PV.VAULT_SIZE do
-            local stack = list[i] or ItemStack("")
-            if not stack:is_empty() then
-                local _, changed = sec.ensure_stack_meta(stack)
-                if changed then
-                    inv:set_stack("main", i, stack)
-                end
-            end
-        end
-    end
-
-    function PV.canonicalize_player_main(player)
-        if not player or not player:is_player() then
-            return
-        end
-        local inv = player:get_inventory()
-        if not inv then
-            return
-        end
-        local sec = security()
-        if not sec or type(sec.ensure_stack_meta) ~= "function" then
-            return
-        end
-        local list = inv:get_list("main") or {}
-        for i, stack in ipairs(list) do
-            if not stack:is_empty() then
-                local _, changed = sec.ensure_stack_meta(stack)
-                if changed then
-                    inv:set_stack("main", i, stack)
-                end
-            end
-        end
     end
 
     function PV.load_vault(owner, vault_index, inv)
@@ -176,7 +166,6 @@ return function(PV)
             list[i] = stack
         end
         inv:set_list("main", list)
-        PV.canonicalize_special_stacks(inv)
     end
 
     function PV.ensure_detached(owner, vault_index)
@@ -222,15 +211,12 @@ return function(PV)
                 return count
             end,
             on_put = function(inv_ref)
-                PV.canonicalize_special_stacks(inv_ref)
                 PV.save_vault(owner, vault_index, inv_ref)
             end,
             on_take = function(inv_ref)
-                PV.canonicalize_special_stacks(inv_ref)
                 PV.save_vault(owner, vault_index, inv_ref)
             end,
             on_move = function(inv_ref)
-                PV.canonicalize_special_stacks(inv_ref)
                 PV.save_vault(owner, vault_index, inv_ref)
             end,
         })
@@ -305,7 +291,7 @@ return function(PV)
         if not player then
             return PV.chat_error("Player not found.")
         end
-        PV.canonicalize_player_main(player)
+        PV.secure_player_main(player)
 
         PV.open_sessions[actor] = {
             owner = owner,
@@ -318,6 +304,7 @@ return function(PV)
             PV.MODNAME .. ":vault:" .. owner .. ":" .. tostring(vault_index),
             PV.formspec_for(owner, actor, vault_index, owner_max_count)
         )
+        play_open_sound(actor)
         return true, ""
     end
 
